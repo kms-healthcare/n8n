@@ -178,12 +178,12 @@ export class ActiveWorkflows {
 		await executeTrigger(true);
 
 		for (const cronTime of cronTimes) {
-			const cronTimeParts = cronTime.split(' ');
-			if (cronTimeParts.length > 0 && cronTimeParts[0].includes('*')) {
-				throw new ApplicationError(
-					'The polling interval is too short. It has to be at least a minute.',
-				);
-			}
+			// const cronTimeParts = cronTime.split(' ');
+			// if (cronTimeParts.length > 0 && cronTimeParts[0].includes('*')) {
+			// 	throw new ApplicationError(
+			// 		'The polling interval is too short. It has to be at least a minute.',
+			// 	);
+			// }
 
 			this.scheduledTaskManager.registerCron(workflow, cronTime, executeTrigger);
 		}

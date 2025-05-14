@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["custom-n8n"]
+    paths:
+      - "packages/**"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  docker-ci:
+    runs-on: ubuntu-22.04
+    outputs:
+      docker_image_tag: ${{ steps.get_image_name.outputs.docker_image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Output Docker Image Name
+        id: get_image_name
+        run: |
+          echo "docker_image_name=$(make get-image-name)" >> $GITHUB_OUTPUT
+          echo "docker_image_tag=$(make get-image-tag)" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image With Tag
+        id: builder
+        run: |
+          docker build --tag ${{ secrets.GCLOUD_REGISTRY }}/${{ secrets.GCLOUD_PROJECT_ID }}/${{ steps.get_image_name.outputs.docker_image_name }}:${{ steps.get_image_name.outputs.docker_image_tag }} --build-arg N8N_RELEASE_TYPE=development --file ./docker/images/n8n-custom/Dockerfile .
+        shell: bash
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCLOUD_SERVICE_KEY }}"
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker ${{ secrets.GCLOUD_REGISTRY }}
+        shell: bash
+
+      - name: Push Docker Image to Google Cloud Registry
+        run: |
+          docker push ${{ secrets.GCLOUD_REGISTRY }}/${{ secrets.GCLOUD_PROJECT_ID }}/${{ steps.get_image_name.outputs.docker_image_name }}:${{ steps.get_image_name.outputs.docker_image_tag }}
+        shell: bash
